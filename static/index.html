@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QueueStorm Investigator</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">⚡</span>
+      <div>
+        <h1>QueueStorm Investigator</h1>
+        <p class="sub">bKash × SUST CSE Carnival 2026 — AI/API SupportOps copilot</p>
+      </div>
+    </div>
+    <div class="status">
+      <span id="health-dot" class="dot dot-unknown"></span>
+      <span id="health-label">checking…</span>
+      <span class="muted">v<span id="version">1.1.0</span></span>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="analyze" role="tab">Analyze ticket</button>
+    <button class="tab" data-tab="batch" role="tab">Batch</button>
+    <button class="tab" data-tab="selftest" role="tab">Self-test</button>
+    <button class="tab" data-tab="metrics" role="tab">Metrics</button>
+  </nav>
+
+  <main>
+    <!-- ===================== Analyze tab ===================== -->
+    <section id="tab-analyze" class="panel active">
+      <div class="grid">
+        <form id="ticket-form" class="card">
+          <h2>Complaint</h2>
+          <label>Ticket ID
+            <input name="ticket_id" value="TKT-DEMO-1" required />
+          </label>
+          <label>Customer complaint
+            <textarea name="complaint" rows="6" required
+              placeholder="Describe what the customer said (English, Bangla, or mixed Banglish)…"></textarea>
+          </label>
+          <div class="row3">
+            <label>Language
+              <select name="language">
+                <option value="en">en</option>
+                <option value="bn">bn</option>
+                <option value="mixed">mixed</option>
+              </select>
+            </label>
+            <label>Channel
+              <select name="channel">
+                <option value="in_app_chat">in_app_chat</option>
+                <option value="call_center">call_center</option>
+                <option value="email">email</option>
+                <option value="merchant_portal">merchant_portal</option>
+              </select>
+            </label>
+            <label>User type
+              <select name="user_type">
+                <option value="customer">customer</option>
+                <option value="merchant">merchant</option>
+                <option value="agent">agent</option>
+                <option value="unknown">unknown</option>
+              </select>
+            </label>
+          </div>
+
+          <details>
+            <summary>Transaction history (optional, JSON)</summary>
+            <textarea name="transaction_history" rows="5"
+              placeholder='[{"transaction_id":"TXN-1","timestamp":"2026-04-14T14:08:22Z","type":"transfer","amount":5000,"counterparty":"+8801719876543","status":"completed"}]'></textarea>
+          </details>
+
+          <div class="actions">
+            <button type="button" class="btn ghost" id="load-example">Load example</button>
+            <button type="submit" class="btn primary">Analyze</button>
+          </div>
+        </form>
+
+        <aside class="card">
+          <h2>Decision</h2>
+          <div id="decision-empty" class="muted">Submit a ticket to see the routing decision here.</div>
+          <div id="decision-out" hidden>
+            <div class="chips">
+              <span class="chip" id="chip-case">—</span>
+              <span class="chip" id="chip-severity">—</span>
+              <span class="chip" id="chip-department">—</span>
+              <span class="chip" id="chip-evidence">—</span>
+            </div>
+            <dl class="kv">
+              <dt>Ticket</dt>           <dd id="kv-ticket">—</dd>
+              <dt>Relevant transaction</dt> <dd id="kv-txn">—</dd>
+              <dt>Human review</dt>     <dd id="kv-review">—</dd>
+              <dt>Confidence</dt>       <dd id="kv-conf">—</dd>
+              <dt>Request ID</dt>       <dd id="kv-rid">—</dd>
+              <dt>Reason codes</dt>     <dd id="kv-reasons">—</dd>
+            </dl>
+            <h3>Agent summary</h3>
+            <p id="out-summary" class="block">—</p>
+            <h3>Recommended next action</h3>
+            <p id="out-action" class="block">—</p>
+            <h3>Customer reply</h3>
+            <p id="out-reply" class="block reply">—</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ===================== Batch tab ===================== -->
+    <section id="tab-batch" class="panel">
+      <div class="card">
+        <h2>Batch analyze</h2>
+        <p class="muted">Up to 100 tickets per call. Per-ticket errors are reported per-result.</p>
+        <textarea id="batch-json" rows="14"
+          placeholder='{"tickets": [{"ticket_id":"T1","complaint":"..."}, ...]}'></textarea>
+        <div class="actions">
+          <button type="button" class="btn ghost" id="batch-load-sample">Load sample</button>
+          <button type="button" class="btn primary" id="batch-submit">Run batch</button>
+        </div>
+        <div id="batch-out"></div>
+      </div>
+    </section>
+
+    <!-- ===================== Self-test tab ===================== -->
+    <section id="tab-selftest" class="panel">
+      <div class="card">
+        <h2>Self-test</h2>
+        <p class="muted">Runs the 10 hostile cases against <code>/analyze-ticket</code> and asserts safety invariants on every reply.</p>
+        <button type="button" class="btn primary" id="run-selftest">Run self-test</button>
+        <div id="selftest-summary"></div>
+        <table id="selftest-table" hidden>
+          <thead><tr>
+            <th>Ticket</th><th>Status</th><th>Case type</th><th>Severity</th>
+            <th>Department</th><th>Evidence</th><th>Human review</th><th>Passed</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===================== Metrics tab ===================== -->
+    <section id="tab-metrics" class="panel">
+      <div class="card">
+        <h2>Live counters</h2>
+        <p class="muted">Prometheus exposition parsed into a friendly table. Reload to refresh.</p>
+        <button type="button" class="btn primary" id="load-metrics">Refresh</button>
+        <pre id="metrics-raw" hidden></pre>
+        <table id="metrics-table">
+          <thead><tr><th>Metric</th><th>Labels</th><th class="num">Value</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span class="muted">POST /analyze-ticket · /analyze-tickets · /selftest · /metrics · GET /health</span>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

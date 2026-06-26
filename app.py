@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from classifier import classify
@@ -234,3 +235,8 @@ def _on_unhandled(_: Request, exc: Exception) -> JSONResponse:
         status_code=500,
         content={"error": "internal_error", "detail": "An unexpected error occurred."},
     )
+
+
+# Mount the static frontend last so the API routes above always win.
+# `html=True` makes StaticFiles serve index.html for directory requests.
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
