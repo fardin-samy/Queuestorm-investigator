@@ -18,6 +18,7 @@ from classifier import classify
 from matcher import find_relevant_transaction
 from reply import build_outputs
 from safety import enforce_safety
+from selftest import run_selftest
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("queuestorm")
@@ -49,6 +50,22 @@ app = FastAPI(title="QueueStorm Investigator", version="1.0.0")
 @app.get("/health")
 def health() -> Dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/selftest")
+def selftest() -> Dict[str, Any]:
+    """Run the bundled hostile_cases.json against ourselves and report.
+
+    A reviewer can hit this single URL and see a green/red report card
+    for every safety invariant. The endpoint hits /analyze-ticket on
+    the same host so the report reflects exactly what a real caller
+    would see — no mocking.
+    """
+    host = "127.0.0.1" if os.environ.get("QS_SELFTEST_HOST") is None else os.environ["QS_SELFTEST_HOST"]
+    port = os.environ.get("PORT", "8000")
+    endpoint = f"http://{host}:{port}/analyze-ticket"
+    report = run_selftest(endpoint)
+    return report
 
 
 @app.post("/analyze-ticket")

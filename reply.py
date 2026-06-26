@@ -193,9 +193,7 @@ def build_outputs(
         decision.case_type in {
             "wrong_transfer",
             "phishing_or_social_engineering",
-            "duplicate_payment",
             "merchant_settlement_delay",
-            "agent_cash_in_issue",
         }
         or decision.severity in {"high", "critical"}
         or decision.evidence_verdict == "inconsistent"

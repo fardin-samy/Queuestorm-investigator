@@ -82,11 +82,21 @@ def find_relevant_transaction(
     if not complaint or not history:
         return None
 
-    best: Optional[Dict[str, Any]] = None
-    best_score = 0
-    for tx in history:
-        s = _score(complaint, tx)
-        if s > best_score:
-            best_score = s
-            best = tx
+    # When the complaint talks about being charged "twice" / "duplicate",
+    # the *latest* transaction is the one the agent typically needs to
+    # investigate and reverse. Pick by score first; tie-break toward the
+    # chronologically-latest transaction in duplicate-payment complaints.
+    duplicate_terms = ("twice", "double charged", "duplicate", "charged twice",
+                       "two times", "দুইবার", "ডাবল", "ডুপ্লিকেট")
+    is_duplicate = any(t in (complaint or "").lower() for t in duplicate_terms)
+
+    scored = sorted(
+        ((_score(complaint, tx), tx) for tx in history),
+        key=lambda pair: (
+            pair[0],
+            pair[1].get("timestamp", "") if is_duplicate else "",
+        ),
+        reverse=True,
+    )
+    best_score, best = scored[0]
     return best if best_score >= 3 else None

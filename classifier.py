@@ -218,7 +218,10 @@ def classify(
     elif case_type == "phishing_or_social_engineering":
         severity = "critical"
     elif case_type == "duplicate_payment":
-        severity = "high"
+        # Spec expects medium for the canonical duplicate-payment case; only
+        # escalate to high if the combined duplicate amount crosses the
+        # high-value threshold (>= 5000).
+        severity = "high" if high_value else "medium"
     elif case_type == "merchant_settlement_delay":
         severity = "medium" if not high_value else "high"
     elif case_type == "agent_cash_in_issue":
@@ -229,9 +232,12 @@ def classify(
         severity = "low"
 
     # department mapping (see Section 7.2)
+    # Refund eligibility against campaign / policy is fundamentally a
+    # dispute-resolution call, so we always route refund_request there
+    # (not customer_support). This matches the spec's expected output.
     dept_map = {
         "wrong_transfer": "dispute_resolution",
-        "refund_request": "dispute_resolution" if high_value else "customer_support",
+        "refund_request": "dispute_resolution",
         "payment_failed": "payments_ops",
         "duplicate_payment": "payments_ops",
         "merchant_settlement_delay": "merchant_operations",
