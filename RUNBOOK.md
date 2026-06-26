@@ -58,3 +58,17 @@ python run_samples.py
 ```
 
 This script POSTs each public sample case to `http://127.0.0.1:8000/analyze-ticket` and writes `sample_output.json`.
+
+## One-command verification
+
+```bash
+python smoke_test.py
+```
+
+Hits every endpoint (`/health`, `/metrics`, `/analyze-ticket` happy/empty/malformed, `/analyze-tickets` happy/empty, `/selftest`) and prints a green/red verdict. Exits non-zero on any failure — safe for CI. Use `--url http://host:port` for remote services.
+
+The Docker image also includes `smoke_test.py`, so judges can run:
+
+```bash
+docker run --rm queuestorm-investigator python smoke_test.py --url http://host:8000
+```

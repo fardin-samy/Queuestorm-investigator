@@ -100,6 +100,20 @@ against the live `/analyze-ticket` and asserts safety invariants on the
 returned `customer_reply`. The same harness backs `python run_hostile.py`
 for CI use.
 
+## Quick verification
+
+For a one-shot green/red verdict across every endpoint:
+
+```bash
+python smoke_test.py
+```
+
+Hits `/health`, `/metrics`, `/analyze-ticket` (happy path, empty
+complaint, schema violation), `/analyze-tickets` (happy path, empty
+batch), and `/selftest`. Exits non-zero on any failure, so it works as
+a CI gate. Override the URL with `--url http://host:port` if the
+service isn't on localhost.
+
 ## Safety logic
 
 `enforce_safety()` in `safety.py` runs on **every** output field, after any generation step:
