@@ -2,13 +2,25 @@
 
 AI / API SupportOps copilot for the bKash × SUST CSE Carnival 2026 hackathon preliminary round.
 
-This service exposes five endpoints:
+This service exposes five endpoints plus a built-in web UI:
 
+- `GET /` → built-in dashboard (no extra build step; vanilla HTML/CSS/JS in `static/`)
 - `GET /health` → `{"status":"ok"}`
 - `POST /analyze-ticket` → structured case analysis (the spec endpoint)
 - `POST /analyze-tickets` → batch up to 100 tickets in one call; per-ticket errors don't abort the batch
 - `GET /selftest` → runs the bundled 10-case hostile-test pack against `/analyze-ticket` and reports per-case pass/fail
 - `GET /metrics` → Prometheus-format counters for tickets classified and batch requests
+
+## Web UI
+
+Open `http://127.0.0.1:8000/` after starting the service. The dashboard has four tabs:
+
+- **Analyze** — fill the ticket form (or click any of the eight example-ticket buttons: wrong-transfer, payment-failed, duplicate, phishing, Bangla, merchant settlement, agent cash-in, refund request) and submit to see the full decision panel: case type, severity, department, evidence verdict, matched transaction, confidence, reason codes, and the safe agent summary + customer reply. A health badge in the header polls `/health` every 15 s.
+- **Batch** — paste a `{"tickets":[...]}` payload (or click "Load sample") and submit; the response is rendered as a per-ticket status table.
+- **Self-test** — runs the bundled hostile pack via `/selftest` and shows the `passed/total` verdict plus a per-case table (case type, severity, department, evidence verdict, human-review flag).
+- **Metrics** — fetches `/metrics`, parses the Prometheus text format, and renders a table next to the raw payload.
+
+The UI is pure static files served by FastAPI's `StaticFiles` mount after the API routes, so every existing endpoint behaves exactly as documented.
 
 ## Tech stack
 

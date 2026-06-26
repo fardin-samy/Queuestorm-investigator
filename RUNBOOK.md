@@ -20,6 +20,8 @@ curl -s http://127.0.0.1:8000/health
 # {"status":"ok"}
 ```
 
+Then open `http://127.0.0.1:8000/` in a browser for the four-tab dashboard (Analyze / Batch / Self-test / Metrics). No build step, no extra install.
+
 ## Option B — Run with Docker
 
 ```bash
