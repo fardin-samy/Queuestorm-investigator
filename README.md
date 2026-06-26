@@ -2,10 +2,13 @@
 
 AI / API SupportOps copilot for the bKash × SUST CSE Carnival 2026 hackathon preliminary round.
 
-This service exposes two endpoints:
+This service exposes five endpoints:
 
 - `GET /health` → `{"status":"ok"}`
-- `POST /analyze-ticket` → structured case analysis (see `sample_output.json` for a real example)
+- `POST /analyze-ticket` → structured case analysis (the spec endpoint)
+- `POST /analyze-tickets` → batch up to 100 tickets in one call; per-ticket errors don't abort the batch
+- `GET /selftest` → runs the bundled 10-case hostile-test pack against `/analyze-ticket` and reports per-case pass/fail
+- `GET /metrics` → Prometheus-format counters for tickets classified and batch requests
 
 ## Tech stack
 
@@ -54,6 +57,48 @@ curl -s http://127.0.0.1:8000/analyze-ticket \
     ]
   }'
 ```
+
+## Response headers
+
+Every successful `/analyze-ticket` response carries routing headers so an
+ops dashboard / proxy can branch on the decision without parsing the body:
+
+| Header | Example |
+| --- | --- |
+| `X-Request-Id` | `8ee2e8a2005d` |
+| `X-Case-Type` | `wrong_transfer` |
+| `X-Severity` | `high` |
+| `X-Department` | `dispute_resolution` |
+| `X-Evidence-Verdict` | `consistent` |
+| `X-Relevant-Transaction-Id` | `TXN-9101` |
+| `X-Human-Review-Required` | `true` |
+
+## Batch endpoint
+
+```bash
+curl -s http://127.0.0.1:8000/analyze-tickets \
+  -H 'content-type: application/json' \
+  -d '{"tickets": [ {ticket1}, {ticket2}, ... ]}'
+```
+
+Returns `{"count": N, "results": [{"ticket_id", "status", "body"}, ...]}`.
+Max 100 tickets per call (returns 422 `batch_too_large` otherwise).
+Empty batch → 422 `empty_batch`. Per-ticket schema or empty-complaint
+errors are reported per-result with their own HTTP status, not as a
+batch-level failure.
+
+## Self-test endpoint
+
+```bash
+curl -s http://127.0.0.1:8000/selftest | jq .
+```
+
+Runs the 10 hostile cases (credential asks, third-party refund scams,
+prompt injection, system-override attempts, empty complaint, vague
+complaint, Bangla refund, merchant settlement delay, positive feedback)
+against the live `/analyze-ticket` and asserts safety invariants on the
+returned `customer_reply`. The same harness backs `python run_hostile.py`
+for CI use.
 
 ## Safety logic
 
